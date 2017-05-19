@@ -29,8 +29,10 @@ class ActorCritic(nn.Module):
     self.fc1 = nn.Linear(self.state_size, hidden_size)
     # Pass previous action, reward and timestep directly into LSTM
     self.lstm = nn.LSTMCell(hidden_size + self.action_size + 2, hidden_size)
-    self.fc_actor = nn.Linear(hidden_size, self.action_size)
-    self.fc_critic = nn.Linear(hidden_size, self.action_size)
+    self.fc_actor1 = nn.Linear(hidden_size, self.action_size)
+    self.fc_critic1 = nn.Linear(hidden_size, self.action_size)
+    self.fc_actor2 = nn.Linear(hidden_size, self.action_size)
+    self.fc_critic2 = nn.Linear(hidden_size, self.action_size)
     self.fc_class = nn.Linear(hidden_size, 1)
 
     # Orthogonal weight initialisation
@@ -51,8 +53,11 @@ class ActorCritic(nn.Module):
     x = self.elu(self.fc1(state))
     h = self.lstm(torch.cat((x, extra), 1), h)  # h is (hidden state, cell state)
     x = h[0]
-    policy = self.softmax(self.fc_actor(x)).clamp(max=1 - 1e-20)  # Prevent 1s and hence NaNs
-    Q = self.fc_critic(x)
-    V = (Q * policy).sum(1)  # V is expectation of Q under π
-    c = self.sigmoid(self.fc_class(x))
-    return policy, Q, V, c, h
+    policy1 = self.softmax(self.fc_actor1(x)).clamp(max=1 - 1e-20)  # Prevent 1s and hence NaNs
+    Q1 = self.fc_critic1(x)
+    V1 = (Q1 * policy1).sum(1)  # V is expectation of Q under π
+    policy2 = self.softmax(self.fc_actor2(x)).clamp(max=1 - 1e-20)
+    Q2 = self.fc_critic2(x)
+    V2 = (Q2 * policy2).sum(1)
+    cls = self.sigmoid(self.fc_class(x))
+    return policy1, Q1, V1, policy2, Q2, V2, cls, h
