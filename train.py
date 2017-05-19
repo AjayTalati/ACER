@@ -136,7 +136,7 @@ def _train(args, T, model, shared_model, shared_average_model, optimiser, polici
     policy_loss /= t
     value_loss /= t
   # Update networks
-  _update_networks(args, T, model, shared_model, shared_average_model, policy_loss + value_loss + class_loss, optimiser)
+  _update_networks(args, T, model, shared_model, shared_average_model, policy_loss + value_loss - class_loss, optimiser)
 
 
 # Acts and trains model
