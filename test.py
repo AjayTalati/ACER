@@ -3,7 +3,7 @@ from datetime import datetime
 import gym
 import torch
 from torch.autograd import Variable
-
+import random
 from model import ActorCritic
 from utils import action_to_one_hot, extend_input, state_to_tensor, plot_line
 
@@ -30,6 +30,11 @@ def test(rank, args, T, shared_model):
       # Evaluate over several episodes and average results
       avg_rewards, avg_episode_lengths = [], []
       for _ in range(args.evaluation_episodes):
+        if random.random() > 0.5:
+            env.gravity = 100
+        else:
+            env.gravity = 9.8
+        print('env.gravity is {}'.format(env.gravity))
         while True:
           # Reset or pass on hidden state
           if done:
@@ -48,7 +53,12 @@ def test(rank, args, T, shared_model):
 
           # Calculate policy
           input = extend_input(state, action_to_one_hot(action, action_size), reward, episode_length)
-          policy, _, _, (hx, cx) = model(Variable(input, volatile=True), (hx.detach(), cx.detach()))  # Break graph for memory efficiency
+          #policy, _, _, (hx, cx) = model(Variable(input, volatile=True), (hx.detach(), cx.detach()))  # Break graph for memory efficiency
+          policy1, Q1, V1, policy2, Q2, V2, cls, (hx, cx) = model(Variable(input, volatile=True), (hx.detach(), cx.detach()))
+
+          policy = policy1 if cls == 0 else policy2
+          Q = Q1 if cls == 0 else Q2
+          V = V1 if cls == 0 else V2
 
           # Choose action greedily
           action = policy.max(1)[1].data[0, 0]
