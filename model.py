@@ -23,6 +23,7 @@ class ActorCritic(nn.Module):
 
     self.elu = nn.ELU(inplace=True)
     self.softmax = nn.Softmax()
+    self.sigmoid = nn.Sigmoid()
 
     # Pass state into model body
     self.fc1 = nn.Linear(self.state_size, hidden_size)
@@ -30,7 +31,7 @@ class ActorCritic(nn.Module):
     self.lstm = nn.LSTMCell(hidden_size + self.action_size + 2, hidden_size)
     self.fc_actor = nn.Linear(hidden_size, self.action_size)
     self.fc_critic = nn.Linear(hidden_size, self.action_size)
-    # TODO: Change Q output to work like dueling network architecture?
+    self.fc_class = nn.Linear(hidden_size, 1)
 
     # Orthogonal weight initialisation
     for name, p in self.named_parameters():
@@ -53,4 +54,5 @@ class ActorCritic(nn.Module):
     policy = self.softmax(self.fc_actor(x)).clamp(max=1 - 1e-20)  # Prevent 1s and hence NaNs
     Q = self.fc_critic(x)
     V = (Q * policy).sum(1)  # V is expectation of Q under π
-    return policy, Q, V, h
+    c = self.sigmoid(self.fc_class(x))
+    return policy, Q, V, c, h
